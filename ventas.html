@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva Venta - MezWare</title>
+    <meta name="theme-color" content="#1e1e1e">
+    
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --primary: #4caf50;
+            --secondary: #00bcd4;
+            --text-main: #ffffff;
+            --text-muted: #aaaaaa;
+            --danger: #ff5252;
+            --input-bg: #2c2c2c;
+            --border: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+        }
+
+        /* --- UI ELEMENTS (NO IMPRIMIBLES) --- */
+        .no-print .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background-color: #252525; border-bottom: 1px solid var(--border);
+        }
+
+        .btn-back {
+            color: var(--text-main); text-decoration: none; font-weight: bold;
+            display: flex; align-items: center; gap: 5px;
+        }
+
+        .container {
+            max-width: 1000px; margin: 20px auto; padding: 0 15px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+        }
+
+        /* --- COLUMNA IZQUIERDA: FORMULARIO --- */
+        .sales-form {
+            background-color: var(--card-bg); padding: 20px; border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .form-section { margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px; }
+        .form-section:last-child { border-bottom: none; }
+        
+        h2 { margin-top: 0; color: var(--primary); font-size: 1.2rem; }
+        
+        label { display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 0.9rem; }
+        
+        select, input {
+            width: 100%; padding: 12px; margin-bottom: 10px;
+            background-color: var(--input-bg); border: 1px solid var(--border);
+            color: white; border-radius: 6px; box-sizing: border-box; font-size: 1rem;
+        }
+
+        .row-inputs { display: flex; gap: 10px; }
+        .row-inputs > div { flex: 1; }
+
+        .btn-add {
+            width: 100%; background-color: var(--secondary); color: white;
+            border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer;
+            margin-top: 10px; transition: opacity 0.2s;
+        }
+        .btn-add:active { opacity: 0.8; }
+
+        /* --- COLUMNA DERECHA: TICKET PREVIEW --- */
+        .ticket-preview {
+            background-color: white; color: black; /* Ticket siempre blanco */
+            padding: 20px; border-radius: 5px;
+            min-height: 400px; display: flex; flex-direction: column;
+        }
+
+        .ticket-header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+        .ticket-header h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; }
+        .ticket-info { font-size: 0.9rem; margin-bottom: 15px; }
+        .ticket-info span { display: block; }
+
+        .ticket-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .ticket-table th { text-align: left; border-bottom: 1px solid #000; }
+        .ticket-table td { padding: 5px 0; }
+        .ticket-table .col-price { text-align: right; }
+
+        .ticket-total {
+            margin-top: auto; border-top: 2px solid #000; padding-top: 10px;
+            text-align: right; font-size: 1.5rem; font-weight: bold;
+        }
+
+        .actions-panel {
+            grid-column: 1 / -1; display: flex; gap: 10px; justify-content: flex-end;
+        }
+
+        .btn-large {
+            padding: 15px 30px; font-size: 1.1rem; border-radius: 8px; border: none; cursor: pointer; font-weight: bold;
+        }
+        .btn-print { background-color: #555; color: white; }
+        .btn-finalize { background-color: var(--primary); color: white; }
+
+        /* --- ESTILOS DE IMPRESIÓN (OCULTAR INTERFAZ) --- */
+        @media print {
+            body { background-color: white; color: black; }
+            .no-print { display: none !important; }
+            .container { display: block; margin: 0; padding: 0; max-width: 100%; }
+            .sales-form { display: none; }
+            .actions-panel { display: none; }
+            .ticket-preview { 
+                border: none; padding: 0; margin: 0; min-height: auto; 
+                width: 100%; position: absolute; top: 0; left: 0;
+            }
+            /* Ajustes para ticket térmico si fuera necesario */
+            @page { margin: 0.5cm; }
+        }
+
+        /* Responsivo móvil */
+        @media (max-width: 700px) {
+            .container { grid-template-columns: 1fr; }
+            .ticket-preview { min-height: auto; border: 5px solid #333; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Elementos que NO salen en la impresión -->
+    <div class="no-print">
+        <div class="top-bar">
+            <a href="menu.html" class="btn-back">← Volver al Menú</a>
+            <span>Módulo de Ventas</span>
+        </div>
+    </div>
+
+    <div class="container">
+        
+        <!-- FORMULARIO (IZQUIERDA) -->
+        <div class="sales-form no-print">
+            
+            <!-- 1. Cliente -->
+            <div class="form-section">
+                <h2>1. Datos del Cliente</h2>
+                <label>Seleccionar Cliente:</label>
+                <select id="clientSelect" onchange="updateTicketHeader()">
+                    <option value="">-- Cliente de Mostrador --</option>
+                    <option disabled>Cargando lista...</option>
+                    <!-- Se llena con JS -->
+                </select>
+                <input type="date" id="saleDate" style="margin-top:5px;">
+            </div>
+
+            <!-- 2. Producto -->
+            <div class="form-section">
+                <h2>2. Agregar Producto</h2>
+                <label>Producto (Ej. Tomate Saladette):</label>
+                <input type="text" id="prodName" placeholder="Escribe el producto...">
+                
+                <div class="row-inputs">
+                    <div>
+                        <label>Cantidad (Kg/Cajas):</label>
+                        <input type="number" id="prodQty" placeholder="0">
+                    </div>
+                    <div>
+                        <label>Precio Unitario ($):</label>
+                        <input type="number" id="prodPrice" placeholder="0.00">
+                    </div>
+                </div>
+                
+                <button class="btn-add" onclick="addToCart()">+ Agregar a la Nota</button>
+            </div>
+        </div>
+
+        <!-- VISTA PREVIA TICKET (DERECHA) -->
+        <div class="ticket-preview" id="printableArea">
+            <div class="ticket-header">
+                <h1>MEZWARE</h1>
+                <small>Central de Abastos - Bodega 45</small>
+            </div>
+            
+            <div class="ticket-info">
+                <span><strong>Fecha:</strong> <span id="ticketDate">--/--/----</span></span>
+                <span><strong>Folio:</strong> <span id="ticketFolio">NEW</span></span>
+                <span><strong>Cliente:</strong> <span id="ticketClient">Mostrador</span></span>
+            </div>
+
+            <table class="ticket-table">
+                <thead>
+                    <tr>
+                        <th>Cant.</th>
+                        <th>Desc.</th>
+                        <th class="col-price">Importe</th>
+                        <th class="no-print" style="width:20px"></th> <!-- Borrar -->
+                    </tr>
+                </thead>
+                <tbody id="cartTableBody">
+                    <!-- Items -->
+                </tbody>
+            </table>
+
+            <div class="ticket-total">
+                Total: $<span id="grandTotal">0.00</span>
+            </div>
+        </div>
+
+        <!-- ACCIONES FINALES -->
+        <div class="actions-panel no-print">
+            <button class="btn-large btn-print" onclick="window.print()">🖨️ Imprimir</button>
+            <button class="btn-large btn-finalize" onclick="saveSale()">✅ Finalizar Venta</button>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+        // Añadí onSnapshot a los imports para actualizaciones en tiempo real
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkqVlWv3zj3bYlz9qGQ2Y60ZTMsigCsRU",
+            authDomain: "mezware-567d7.firebaseapp.com",
+            projectId: "mezware-567d7",
+            storageBucket: "mezware-567d7.firebasestorage.app",
+            messagingSenderId: "12354459180",
+            appId: "1:12354459180:web:5367e21af312b1c8426389",
+            measurementId: "G-YN2R2EYFBF"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let cart = [];
+        let grandTotal = 0;
+
+        // Init
+        document.getElementById('saleDate').valueAsDate = new Date();
+        updateTicketHeader();
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) window.location.href = "index.html";
+            else loadClients();
+        });
+
+        // 1. Cargar Clientes (Actualizado: Usa onSnapshot para tiempo real)
+        function loadClients() {
+            try {
+                const q = query(collection(db, "clientes"), orderBy("nombre"));
+                
+                // onSnapshot escucha cambios en vivo
+                onSnapshot(q, (snapshot) => {
+                    const select = document.getElementById('clientSelect');
+                    
+                    // Resetear el select conservando la opción por defecto
+                    select.innerHTML = '<option value="">-- Cliente de Mostrador --</option>';
+
+                    if (snapshot.empty) {
+                        console.warn("No se encontraron clientes en la base de datos.");
+                    }
+
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const opt = document.createElement('option');
+                        opt.value = data.nombre; 
+                        opt.textContent = data.nombre;
+                        select.appendChild(opt);
+                    });
+                }, (error) => {
+                    console.error("Error cargando clientes:", error);
+                    alert("Error cargando clientes. Revisa que estés logueado.");
+                });
+            } catch (error) {
+                console.error("Error al iniciar la consulta de clientes:", error);
+            }
+        }
+
+        // 2. Funciones UI Ticket
+        window.updateTicketHeader = () => {
+            const clientName = document.getElementById('clientSelect').value || "Mostrador";
+            const dateVal = document.getElementById('saleDate').value;
+            
+            document.getElementById('ticketClient').textContent = clientName;
+            document.getElementById('ticketDate').textContent = dateVal;
+        };
+
+        // 3. Agregar al Carrito
+        window.addToCart = () => {
+            const name = document.getElementById('prodName').value;
+            const qty = parseFloat(document.getElementById('prodQty').value);
+            const price = parseFloat(document.getElementById('prodPrice').value);
+
+            if (!name || isNaN(qty) || isNaN(price)) {
+                alert("Por favor completa los datos del producto");
+                return;
+            }
+
+            const total = qty * price;
+            
+            // Agregar al array
+            cart.push({ name, qty, price, total });
+            
+            // Limpiar inputs
+            document.getElementById('prodName').value = "";
+            document.getElementById('prodQty').value = "";
+            document.getElementById('prodPrice').value = "";
+            document.getElementById('prodName').focus();
+
+            renderCart();
+        };
+
+        function renderCart() {
+            const tbody = document.getElementById('cartTableBody');
+            tbody.innerHTML = "";
+            grandTotal = 0;
+
+            cart.forEach((item, index) => {
+                grandTotal += item.total;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.qty}</td>
+                    <td>${item.name} <br><small style="color:#666">$${item.price.toFixed(2)} c/u</small></td>
+                    <td class="col-price">$${item.total.toFixed(2)}</td>
+                    <td class="no-print">
+                        <button onclick="removeItem(${index})" style="color:red; border:none; background:none; cursor:pointer;">×</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+        }
+
+        window.removeItem = (index) => {
+            cart.splice(index, 1);
+            renderCart();
+        };
+
+        // 4. Guardar Venta en Firebase
+        window.saveSale = async () => {
+            if (cart.length === 0) {
+                alert("La nota está vacía.");
+                return;
+            }
+
+            const btn = document.querySelector('.btn-finalize');
+            btn.textContent = "Guardando...";
+            btn.disabled = true;
+
+            const saleData = {
+                cliente: document.getElementById('ticketClient').textContent,
+                fecha: document.getElementById('saleDate').value,
+                timestamp: serverTimestamp(),
+                productos: cart,
+                total: grandTotal,
+                tipo: "Nota de Venta"
+            };
+
+            try {
+                const docRef = await addDoc(collection(db, "ventas"), saleData);
+                console.log("Venta guardada con ID: ", docRef.id);
+                
+                // Mostrar ID en el ticket y alertar
+                document.getElementById('ticketFolio').textContent = docRef.id.slice(-6).toUpperCase();
+                
+                if(confirm("¡Venta Guardada! ¿Deseas imprimir antes de limpiar?")) {
+                    window.print();
+                }
+
+                // Resetear todo
+                cart = [];
+                renderCart();
+                document.getElementById('prodName').value = "";
+                document.getElementById('ticketFolio').textContent = "NEW";
+                
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                alert("Error al guardar la venta");
+            } finally {
+                btn.textContent = "✅ Finalizar Venta";
+                btn.disabled = false;
+            }
+        };
+
+        // Exponer funciones al window
+        window.updateTicketHeader = updateTicketHeader;
+    </script>
+</body>
+</html>
