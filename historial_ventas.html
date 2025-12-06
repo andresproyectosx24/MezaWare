@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Ventas - MezWare</title>
+    <meta name="theme-color" content="#1e1e1e">
+    
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --primary: #4caf50;
+            --secondary: #00bcd4;
+            --text-main: #ffffff;
+            --text-muted: #aaaaaa;
+            --danger: #ff5252;
+            --warning: #ffca28;
+            --border: #333;
+            --input-bg: #2c2c2c;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+        }
+
+        /* --- LAYOUT GENERAL --- */
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background-color: #252525; border-bottom: 1px solid var(--border);
+        }
+        
+        .btn-back { 
+            color: var(--text-main); text-decoration: none; font-weight: bold;
+            display: flex; align-items: center; gap: 5px;
+        }
+
+        .container { max-width: 900px; margin: 20px auto; padding: 0 15px; }
+
+        h1 { color: var(--primary); margin-bottom: 20px; }
+
+        /* --- LISTA DE VENTAS --- */
+        .sales-list { display: grid; gap: 15px; }
+
+        .sale-card {
+            background-color: var(--card-bg); padding: 20px; border-radius: 10px;
+            border: 1px solid var(--border); display: flex; justify-content: space-between;
+            align-items: center; transition: transform 0.2s;
+        }
+        .sale-card:hover { border-color: #555; }
+
+        .sale-info h3 { margin: 0 0 5px 0; font-size: 1.1rem; }
+        .sale-info p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+        .sale-total { font-weight: bold; color: var(--primary); font-size: 1.2rem; }
+
+        .sale-actions { display: flex; gap: 10px; align-items: center; }
+        
+        .btn-action {
+            padding: 8px 12px; border-radius: 6px; border: none; cursor: pointer;
+            font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-print { background-color: #333; color: white; border: 1px solid #555; }
+        .btn-print:hover { background-color: #444; }
+        
+        .btn-edit { background-color: transparent; color: var(--warning); border: 1px solid var(--warning); }
+        .btn-edit:hover { background-color: rgba(255, 202, 40, 0.1); }
+
+        .btn-cancel { background-color: transparent; color: var(--danger); border: 1px solid var(--danger); }
+        .btn-cancel:hover { background-color: rgba(255, 82, 82, 0.1); }
+
+        /* --- MODAL DE EDICIÓN --- */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-content {
+            background: var(--card-bg); padding: 25px; border-radius: 12px; width: 95%; max-width: 600px;
+            border: 1px solid #444; max-height: 90vh; overflow-y: auto;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h2 { margin: 0; color: var(--warning); font-size: 1.3rem; }
+        
+        .edit-form-group { margin-bottom: 15px; }
+        .edit-form-group label { display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 0.9rem; }
+        .edit-input { 
+            width: 100%; padding: 10px; background: var(--input-bg); border: 1px solid #444; 
+            color: white; border-radius: 6px; box-sizing: border-box;
+        }
+
+        /* Tabla de Edición */
+        .edit-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .edit-table th { text-align: left; font-size: 0.85rem; color: #aaa; padding-bottom: 5px; border-bottom: 1px solid #333; }
+        .edit-table td { padding: 5px 0; vertical-align: top; }
+        .edit-table input { 
+            width: 95%; padding: 8px; background: #222; border: 1px solid #444; 
+            color: white; border-radius: 4px; font-size: 0.9rem;
+        }
+        .btn-row-del { color: var(--danger); background: none; border: none; cursor: pointer; font-size: 1.2rem; }
+        .btn-add-row { 
+            width: 100%; padding: 10px; background: #333; border: 1px dashed #555; 
+            color: #aaa; margin-top: 10px; cursor: pointer; border-radius: 6px;
+        }
+        .btn-add-row:hover { background: #444; color: white; }
+
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; pt: 15px; border-top: 1px solid #333; }
+        .btn-save { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+
+        /* --- TICKET OCULTO (Solo visible al imprimir) --- */
+        #hidden-ticket { display: none; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #hidden-ticket, #hidden-ticket * { visibility: visible; }
+            #hidden-ticket {
+                display: block !important;
+                position: absolute; left: 0; top: 0; width: 100%;
+                color: black; background: white; padding: 0;
+            }
+            .ticket-header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+            .ticket-header h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; }
+            .ticket-info { font-size: 0.9rem; margin-bottom: 15px; }
+            .ticket-info span { display: block; }
+            .ticket-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+            .ticket-table th { text-align: left; border-bottom: 1px solid #000; }
+            .ticket-table td { padding: 5px 0; }
+            .ticket-table .col-price { text-align: right; }
+            .ticket-total {
+                margin-top: 20px; border-top: 2px solid #000; padding-top: 10px;
+                text-align: right; font-size: 1.5rem; font-weight: bold;
+            }
+            @page { margin: 0.5cm; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <a href="ventas.html" class="btn-back">← Regresar a Ventas</a>
+        <span style="color: #666;">Historial</span>
+    </div>
+
+    <div class="container">
+        <h1>Historial de Ventas</h1>
+        <div id="loading" style="color:#888;">Cargando historial...</div>
+        <div id="salesList" class="sales-list">
+            <!-- Items generados por JS -->
+        </div>
+    </div>
+
+    <!-- MODAL DE EDICIÓN -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Venta</h2>
+                <button onclick="closeEditModal()" style="background:none; border:none; color:#aaa; font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            
+            <input type="hidden" id="editId">
+            
+            <div style="display: flex; gap: 15px;">
+                <div class="edit-form-group" style="flex:1;">
+                    <label>Cliente</label>
+                    <input type="text" id="editClient" class="edit-input">
+                </div>
+                <div class="edit-form-group" style="flex:1;">
+                    <label>Fecha</label>
+                    <input type="date" id="editDate" class="edit-input">
+                </div>
+            </div>
+
+            <label style="color:#aaa; font-size:0.9rem;">Productos</label>
+            <table class="edit-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%">Cant.</th>
+                        <th style="width: 45%">Producto</th>
+                        <th style="width: 20%">Precio</th>
+                        <th style="width: 10%"></th>
+                    </tr>
+                </thead>
+                <tbody id="editTableBody">
+                    <!-- Filas dinámicas -->
+                </tbody>
+            </table>
+            <button class="btn-add-row" onclick="addEditRow()">+ Agregar Producto</button>
+
+            <div style="text-align: right; margin-top: 15px; font-weight: bold; color: var(--primary);">
+                Nuevo Total: $<span id="editTotalDisplay">0.00</span>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeEditModal()" style="border:1px solid #555; color:#ddd;">Cancelar</button>
+                <button class="btn-save" onclick="saveEdit()">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTENEDOR OCULTO PARA IMPRESIÓN -->
+    <div id="hidden-ticket">
+        <div class="ticket-header">
+            <h1>MEZWARE</h1>
+            <small>Central de Abastos - Bodega 45</small>
+            <p style="font-weight:bold; margin-top:5px; font-size: 0.8rem;">*** REIMPRESIÓN DE COPIA ***</p>
+        </div>
+        
+        <div class="ticket-info">
+            <span><strong>Fecha:</strong> <span id="pDate"></span></span>
+            <span><strong>Folio:</strong> <span id="pFolio"></span></span>
+            <span><strong>Cliente:</strong> <span id="pClient"></span></span>
+        </div>
+
+        <table class="ticket-table">
+            <thead>
+                <tr>
+                    <th>Cant.</th>
+                    <th>Desc.</th>
+                    <th class="col-price">Importe</th>
+                </tr>
+            </thead>
+            <tbody id="pBody"></tbody>
+        </table>
+
+        <div class="ticket-total">
+            Total: $<span id="pTotal"></span>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+        // Importamos updateDoc
+        import { getFirestore, collection, query, orderBy, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkqVlWv3zj3bYlz9qGQ2Y60ZTMsigCsRU",
+            authDomain: "mezware-567d7.firebaseapp.com",
+            projectId: "mezware-567d7",
+            storageBucket: "mezware-567d7.firebasestorage.app",
+            messagingSenderId: "12354459180",
+            appId: "1:12354459180:web:5367e21af312b1c8426389",
+            measurementId: "G-YN2R2EYFBF"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) window.location.href = "index.html";
+            else loadSales();
+        });
+
+        let allSales = [];
+
+        function loadSales() {
+            const q = query(collection(db, "ventas"), orderBy("timestamp", "desc"));
+
+            onSnapshot(q, (snapshot) => {
+                document.getElementById('loading').style.display = 'none';
+                const container = document.getElementById('salesList');
+                container.innerHTML = "";
+                allSales = [];
+
+                if (snapshot.empty) {
+                    container.innerHTML = "<p style='color:#666'>No hay ventas registradas aún.</p>";
+                    return;
+                }
+
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    data.id = docSnap.id;
+                    allSales.push(data);
+                    
+                    const folio = data.id.slice(-6).toUpperCase();
+
+                    const card = document.createElement('div');
+                    card.className = 'sale-card';
+                    card.innerHTML = `
+                        <div class="sale-info">
+                            <h3>${data.cliente}</h3>
+                            <p>📅 ${data.fecha} &nbsp; | &nbsp; 🧾 Folio: ${folio}</p>
+                            <p style="font-size:0.8rem; margin-top:5px;">${data.productos.length} productos</p>
+                        </div>
+                        <div class="sale-actions">
+                            <span class="sale-total">$${data.total.toFixed(2)}</span>
+                            <button class="btn-action btn-edit" onclick="openEditModal('${data.id}')" title="Editar">✏️</button>
+                            <button class="btn-action btn-print" onclick="printTicket('${data.id}')" title="Reimprimir">🖨️</button>
+                            <button class="btn-action btn-cancel" onclick="deleteSale('${data.id}')" title="Eliminar">🗑️</button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            });
+        }
+
+        // --- LÓGICA DE EDICIÓN ---
+
+        window.openEditModal = (id) => {
+            const sale = allSales.find(s => s.id === id);
+            if(!sale) return;
+
+            document.getElementById('editId').value = id;
+            document.getElementById('editClient').value = sale.cliente;
+            document.getElementById('editDate').value = sale.fecha;
+
+            const tbody = document.getElementById('editTableBody');
+            tbody.innerHTML = "";
+
+            // Generar filas para cada producto existente
+            sale.productos.forEach(prod => {
+                addEditRow(prod.qty, prod.name, prod.price);
+            });
+            
+            calculateEditTotal();
+            document.getElementById('editModal').style.display = 'flex';
+        };
+
+        window.addEditRow = (qty = "", name = "", price = "") => {
+            const tbody = document.getElementById('editTableBody');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="number" class="row-qty" value="${qty}" oninput="calculateEditTotal()" placeholder="0"></td>
+                <td><input type="text" class="row-name" value="${name}" placeholder="Producto"></td>
+                <td><input type="number" class="row-price" value="${price}" oninput="calculateEditTotal()" placeholder="0.00"></td>
+                <td style="text-align:center"><button class="btn-row-del" onclick="this.parentElement.parentElement.remove(); calculateEditTotal();">&times;</button></td>
+            `;
+            tbody.appendChild(tr);
+        };
+
+        window.calculateEditTotal = () => {
+            let total = 0;
+            const rows = document.querySelectorAll('#editTableBody tr');
+            rows.forEach(row => {
+                const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.row-price').value) || 0;
+                total += qty * price;
+            });
+            document.getElementById('editTotalDisplay').textContent = total.toFixed(2);
+            return total;
+        };
+
+        window.saveEdit = async () => {
+            const id = document.getElementById('editId').value;
+            const client = document.getElementById('editClient').value;
+            const date = document.getElementById('editDate').value;
+
+            if(!client || !date) { alert("Cliente y fecha son obligatorios"); return; }
+
+            // Reconstruir array de productos
+            const newProducts = [];
+            let isValid = true;
+            const rows = document.querySelectorAll('#editTableBody tr');
+            
+            rows.forEach(row => {
+                const qty = parseFloat(row.querySelector('.row-qty').value);
+                const name = row.querySelector('.row-name').value;
+                const price = parseFloat(row.querySelector('.row-price').value);
+
+                if(!name || isNaN(qty) || isNaN(price)) {
+                    // Ignorar filas vacías si quieres, o marcar error
+                    if(name || qty || price) isValid = false; 
+                } else {
+                    newProducts.push({
+                        name: name,
+                        qty: qty,
+                        price: price,
+                        total: qty * price
+                    });
+                }
+            });
+
+            if(!isValid) { alert("Por favor completa los datos de los productos o elimina las filas vacías."); return; }
+            if(newProducts.length === 0) { alert("La venta debe tener al menos un producto."); return; }
+
+            const newTotal = newProducts.reduce((sum, p) => sum + p.total, 0);
+
+            try {
+                const btn = document.querySelector('.btn-save');
+                btn.textContent = "Guardando...";
+                
+                await updateDoc(doc(db, "ventas", id), {
+                    cliente: client,
+                    fecha: date,
+                    productos: newProducts,
+                    total: newTotal
+                });
+
+                closeEditModal();
+                btn.textContent = "Guardar Cambios";
+            } catch (e) {
+                console.error(e);
+                alert("Error al actualizar la venta");
+            }
+        };
+
+        window.closeEditModal = () => document.getElementById('editModal').style.display = 'none';
+
+        // --- LÓGICA DE IMPRESIÓN Y BORRADO (Existente) ---
+
+        window.printTicket = (id) => {
+            const sale = allSales.find(s => s.id === id);
+            if (!sale) return;
+
+            document.getElementById('pDate').textContent = sale.fecha;
+            document.getElementById('pFolio').textContent = sale.id.slice(-6).toUpperCase();
+            document.getElementById('pClient').textContent = sale.cliente;
+            document.getElementById('pTotal').textContent = sale.total.toFixed(2);
+
+            const tbody = document.getElementById('pBody');
+            tbody.innerHTML = "";
+            
+            sale.productos.forEach(prod => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${prod.qty}</td>
+                    <td>${prod.name}</td>
+                    <td class="col-price">$${prod.total.toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            window.print();
+        };
+
+        window.deleteSale = async (id) => {
+            if(confirm("⚠️ ¿Estás seguro de ELIMINAR esta venta?\nEsto borrará el registro permanentemente.")) {
+                try {
+                    await deleteDoc(doc(db, "ventas", id));
+                } catch(e) {
+                    console.error(e);
+                    alert("Error al eliminar venta.");
+                }
+            }
+        }
+    </script>
+</body>
+</html>

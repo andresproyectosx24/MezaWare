@@ -43,6 +43,20 @@
             display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
         }
 
+        /* ESTILO NUEVO PARA EL BOTÓN DE HISTORIAL */
+        .btn-history {
+            background-color: #333; color: #ddd; text-decoration: none;
+            padding: 8px 15px; border-radius: 20px; font-size: 0.9rem;
+            border: 1px solid #444; transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+        }
+        .btn-history:hover { background-color: #444; color: white; border-color: #666; }
+
+        .container {
+            max-width: 1000px; margin: 20px auto; padding: 0 15px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+        }
+
+
         /* --- COLUMNA IZQUIERDA: FORMULARIO --- */
         .sales-form {
             background-color: var(--card-bg); padding: 20px; border-radius: 12px;
@@ -131,7 +145,13 @@
     <!-- Elementos que NO salen en la impresión -->
     <div class="no-print">
         <div class="top-bar">
-            <a href="menu.html" class="btn-back">← Volver al Menú</a>
+            <a href="menu.html" class="btn-back">← Volver al Menú</a`>
+            <div style="display:flex; align-items:center; gap:15px;">
+                <a href="historial_ventas.html" class="btn-history">📜 Ver Historial</a>
+                <span>Módulo de Ventas</span>
+            </div>
+        </div>
+    </div>
             <span>Módulo de Ventas</span>
         </div>
     </div>
@@ -279,13 +299,12 @@
         }
 
         // 2. Funciones UI Ticket
-        window.updateTicketHeader = () => {
+        function updateTicketHeader() {
             const clientName = document.getElementById('clientSelect').value || "Mostrador";
             const dateVal = document.getElementById('saleDate').value;
-            
             document.getElementById('ticketClient').textContent = clientName;
             document.getElementById('ticketDate').textContent = dateVal;
-        };
+        }
 
         // 3. Agregar al Carrito
         window.addToCart = () => {
