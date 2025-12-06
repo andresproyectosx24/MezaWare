@@ -282,13 +282,20 @@
 
       if (!nombre || cant < 0) { alert("Datos incorrectos"); return; }
 
-      // Regla de negocio: Cálculo estimado
+      // ... (dentro de document.getElementById('btn-guardar').addEventListener...)
+
+      // Regla de negocio: Cálculo estimado CORREGIDO
       let pesoUnitario = 0;
-      if (tipo.includes('25kg')) pesoUnitario = 25;
-      else if (tipo.includes('28kg')) pesoUnitario = 28;
-      else if (tipo.includes('50kg')) pesoUnitario = 50;
+
+      // Usamos los valores exactos que definiste en el <option value="...">
+      if (tipo === 'Caja Plástico') pesoUnitario = 25;
+      else if (tipo === 'Caja Madera') pesoUnitario = 28;
+      else if (tipo === 'Costal') pesoUnitario = 50;
+      // 'Manojo' se queda en 0 kg por defecto
       
       const kilosTotales = cant * pesoUnitario;
+
+      // ... (sigue con const datos = { ... })
 
       const datos = {
           producto: nombre,
