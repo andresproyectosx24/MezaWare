@@ -6,18 +6,42 @@
     <title>Acceso - MezWare</title>
     <link rel="stylesheet" href="style.css">
     
-    <!-- PWA (Listo para el futuro) -->
+    <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e1e1e">
+
+    <style>
+        /* Estilos extra para el botón de ver contraseña */
+        .password-container {
+            position: relative;
+            width: 100%;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: #888;
+            padding: 0;
+            user-select: none; /* Evita que se seleccione el texto al hacer doble clic */
+        }
+
+        .password-toggle:hover {
+            color: #4caf50; /* Verde al pasar el mouse */
+        }
+    </style>
 </head>
 <body>
 
     <div class="login-container">
         <div class="login-card">
-            <!-- Ícono (Puedes cambiarlo por tu logo real después) -->
             <div class="logo-area">🥬</div>
             
-            <!-- NUEVO NOMBRE DE MARCA -->
             <h1>MezWare</h1>
             <p class="subtitle">Sistema de Gestión Agrícola</p>
             
@@ -29,7 +53,10 @@
                 
                 <div class="input-group">
                     <label>Contraseña</label>
-                    <input type="password" id="password" placeholder="••••••••" required>
+                    <div class="password-container">
+                        <input type="password" id="password" placeholder="••••••••" required style="padding-right: 40px;">
+                        <span id="toggle-password" class="password-toggle" title="Ver contraseña">👁️</span>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-login" id="btn-submit">
@@ -37,32 +64,48 @@
                 </button>
             </form>
 
-            <p id="error-msg" class="error-text"></p>
+            <p id="error-msg" class="error-text" style="display: none; color: #ff5252; margin-top: 15px;"></p>
             
             <p class="footer-text">© 2025 MezWare | Soluciones de Abasto</p>
         </div>
     </div>
 
     <script type="module">
-        // Lógica de Firebase (Recuerda configurar tu proyecto nuevo aquí)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
-        // --- PEGA AQUÍ LAS CREDENCIALES DE TU NUEVO PROYECTO FIREBASE ---
+        // --- TUS CREDENCIALES ---
         const firebaseConfig = {
-            apiKey: "TU_API_KEY_NUEVA",
-            authDomain: "tu-proyecto-abastos.firebaseapp.com",
-            projectId: "tu-proyecto-abastos",
-            storageBucket: "tu-proyecto-abastos.appspot.com",
-            messagingSenderId: "...",
-            appId: "..."
+            apiKey: "AIzaSyCkqVlWv3zj3bYlz9qGQ2Y60ZTMsigCsRU",
+            authDomain: "mezware-567d7.firebaseapp.com",
+            projectId: "mezware-567d7",
+            storageBucket: "mezware-567d7.firebasestorage.app",
+            messagingSenderId: "12354459180",
+            appId: "1:12354459180:web:5367e21af312b1c8426389",
+            measurementId: "G-YN2R2EYFBF"
         };
 
+        // Inicializar Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
+        // --- LÓGICA VER CONTRASEÑA ---
+        const togglePassword = document.getElementById('toggle-password');
+        const passwordInput = document.getElementById('password');
+
+        togglePassword.addEventListener('click', () => {
+            // Cambiar el tipo de input
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // Cambiar el icono (Ojo abierto / Ojo tachado)
+            togglePassword.textContent = type === 'password' ? '👁️' : '🚫';
+        });
+
+        // --- LÓGICA DE SESIÓN ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                console.log("Usuario detectado, redirigiendo...");
                 window.location.href = "menu.html";
             }
         });
@@ -73,8 +116,10 @@
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
             btnSubmit.textContent = "Verificando...";
             btnSubmit.disabled = true;
+            btnSubmit.style.opacity = "0.7";
             errorMsg.style.display = 'none';
 
             const email = document.getElementById('email').value;
@@ -83,17 +128,22 @@
             try {
                 await signInWithEmailAndPassword(auth, email, password);
             } catch (error) {
-                console.error(error);
+                console.error("Error de acceso:", error.code);
+                
                 btnSubmit.textContent = "Entrar al Sistema";
                 btnSubmit.disabled = false;
+                btnSubmit.style.opacity = "1";
+                
                 errorMsg.style.display = 'block';
                 
-                if(error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+                if(error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                     errorMsg.textContent = "Usuario o contraseña incorrectos.";
                 } else if (error.code === 'auth/too-many-requests') {
-                    errorMsg.textContent = "Demasiados intentos. Espera un momento.";
+                    errorMsg.textContent = "Demasiados intentos fallidos. Espera unos minutos.";
+                } else if (error.code === 'auth/network-request-failed') {
+                    errorMsg.textContent = "Error de conexión. Revisa tu internet.";
                 } else {
-                    errorMsg.textContent = "Error de conexión.";
+                    errorMsg.textContent = "Ocurrió un error: " + error.code;
                 }
             }
         });

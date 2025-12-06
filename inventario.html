@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventario - MezWare</title>
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e1e1e">
+  
+  <style>
+    /* --- ESTILOS INVENTARIO AGRÍCOLA --- */
+
+    /* Layout General */
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    main { flex: 1; max-width: 1200px; margin: 0 auto; padding: 20px; width: 100%; }
+
+    /* Header y Nav (Reutilizable) */
+    header { padding: 20px; text-align: center; background-color: var(--card-bg); border-bottom: 1px solid #333; }
+    header h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
+    nav { background-color: #252525; padding: 10px; text-align: center; }
+    nav a { color: #e0e0e0; text-decoration: none; font-weight: bold; margin: 0 10px; }
+    nav a:hover { color: var(--primary); }
+
+    /* Dashboard de Métricas (KPIs) */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+    .stat-card {
+        background-color: var(--card-bg);
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 4px solid var(--primary);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    .stat-card h3 { margin: 0; font-size: 0.9rem; color: #aaa; text-transform: uppercase; }
+    .stat-card p { margin: 5px 0 0 0; font-size: 1.6rem; font-weight: bold; color: white; }
+    
+    .stat-alert { border-left-color: var(--error); }
+    .stat-alert p { color: var(--error); }
+
+    /* Formulario de Entrada */
+    .inventory-form {
+        background-color: var(--card-bg);
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        border: 1px solid var(--border);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        align-items: end;
+    }
+
+    .form-group { display: flex; flex-direction: column; }
+    label { margin-bottom: 5px; font-size: 0.85rem; color: var(--primary); font-weight: bold; }
+    input, select {
+        padding: 10px; background-color: #2d2d2d; border: 1px solid var(--border);
+        color: white; border-radius: 5px; font-size: 1rem; width: 100%;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--primary); }
+
+    /* Botones */
+    .btn-add {
+        background-color: var(--primary); color: white; border: none; padding: 12px;
+        border-radius: 5px; font-weight: bold; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-add:hover { background-color: var(--primary-hover); }
+
+    .btn-cancel {
+        background-color: #555; color: white; border: none; padding: 12px;
+        border-radius: 5px; cursor: pointer; display: none; /* Oculto por defecto */
+    }
+
+    /* Tabla de Inventario */
+    .table-container { overflow-x: auto; } /* Scroll horizontal en móvil */
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        min-width: 600px; /* Fuerza ancho mínimo para no romper columnas */
+    }
+    
+    thead { background-color: #252525; }
+    th { padding: 12px; text-align: left; color: var(--primary); border-bottom: 2px solid #444; }
+    td { padding: 12px; border-bottom: 1px solid #333; color: #ddd; }
+    
+    tr:hover { background-color: rgba(255,255,255,0.05); }
+
+    /* Acciones en Tabla */
+    .action-btn {
+        padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; margin-right: 5px;
+    }
+    .btn-edit { background-color: #2196f3; color: white; }
+    .btn-delete { background-color: #f44336; color: white; }
+    
+    .stock-badge {
+        display: inline-block; padding: 3px 8px; border-radius: 10px; 
+        font-size: 0.85rem; font-weight: bold; background-color: #333;
+    }
+    .low-stock { color: #ff9800; border: 1px solid #ff9800; }
+    .ok-stock { color: #4caf50; border: 1px solid #4caf50; }
+
+    /* Footer */
+    footer { text-align: center; padding: 20px; background-color: #181818; color: #555; font-size: 0.8rem; margin-top: auto; }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+        .inventory-form { grid-template-columns: 1fr; } /* Form vertical en celular */
+        .stats-grid { grid-template-columns: 1fr 1fr; } /* 2 columnas en métricas */
+        
+        /* Tabla responsiva tipo tarjetas para celular */
+        table, thead, tbody, th, td, tr { display: block; }
+        thead tr { position: absolute; top: -9999px; left: -9999px; }
+        tr { margin-bottom: 15px; border: 1px solid #444; border-radius: 10px; background: var(--card-bg); padding: 10px; }
+        
+        td { 
+            border: none; border-bottom: 1px solid #333; position: relative; 
+            padding-left: 50%; text-align: right; min-height: 30px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        
+        td:last-child { border-bottom: none; justify-content: flex-end; }
+        
+        td:before { 
+            content: attr(data-label); font-weight: bold; color: var(--primary);
+            position: absolute; left: 10px; top: 12px;
+        }
+        
+        /* Ocultamos columnas irrelevantes en móvil si es necesario */
+        .hide-mobile { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Inventario Bodega</h1>
+  </header>
+  
+  <nav>
+    <a href="menu.html">⬅ Menú Principal</a>
+  </nav>
+
+  <main>
+    
+    <!-- MÉTRICAS RÁPIDAS -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Total Bultos</h3>
+            <p id="stat-bultos">0</p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Kilos (Estimado)</h3>
+            <p id="stat-kilos">0 kg</p>
+        </div>
+        <div class="stat-card stat-alert">
+            <h3>Stock Bajo</h3>
+            <p id="stat-alertas">0</p>
+        </div>
+    </div>
+
+    <!-- FORMULARIO DE REGISTRO -->
+    <div class="inventory-form">
+        <div class="form-group">
+            <label>Producto</label>
+            <input type="text" id="prod-nombre" placeholder="Ej: Chayote Espina" list="lista-prods">
+            <datalist id="lista-prods">
+                <option value="Chayote Espina">
+                <option value="Chayote Liso">
+                <option value="Calabaza">
+                <option value="Cilantro">
+            </datalist>
+        </div>
+
+        <div class="form-group">
+            <label>Tipo Bulto</label>
+            <select id="prod-tipo">
+                <option value="Caja Plástico">Caja Plástico (25kg)</option>
+                <option value="Caja Madera">Caja Madera (28kg)</option>
+                <option value="Costal">Costal (50kg)</option>
+                <option value="Manojo">Manojo</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Cantidad (Bultos)</label>
+            <input type="number" id="prod-cant" placeholder="0" min="0">
+        </div>
+
+        <div class="form-group">
+            <label>Precio Promedio</label>
+            <input type="number" id="prod-precio" placeholder="$0.00">
+        </div>
+
+        <div class="form-group">
+            <button class="btn-add" id="btn-guardar">Guardar Entrada</button>
+            <button class="btn-cancel" id="btn-cancelar" onclick="cancelarEdicion()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- TABLA DE EXISTENCIAS -->
+    <div class="table-container">
+        <input type="text" id="buscador" placeholder="🔍 Buscar producto..." style="margin-bottom: 15px; padding: 12px; width: 100%; box-sizing: border-box; background:#1e1e1e; border:1px solid #444; color:white; border-radius:5px;">
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Tipo</th>
+                    <th>Existencia</th>
+                    <th>Kilos Aprox</th>
+                    <th>Precio Ref</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-body">
+                <tr><td colspan="6" style="text-align:center; color:#aaa;">Cargando inventario...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+  </main>
+
+  <footer>
+    © 2025 MezWare
+  </footer>
+
+  <script type="module">
+  // 1. IMPORTACIONES NECESARIAS (Esto es lo que faltaba)
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+  import { 
+    getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot 
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { 
+    getAuth, onAuthStateChanged 
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  // 2. CONFIGURACIÓN (Asegúrate que estos datos sean de TU consola de Firebase)
+  const firebaseConfig = {
+    apiKey: "AIzaSyCkqVlWv3zj3bYlz9qGQ2Y60ZTMsigCsRU", // <--- VERIFICA ESTO
+    authDomain: "mezware-567d7.firebaseapp.com",
+    projectId: "mezware-567d7",
+    storageBucket: "mezware-567d7.firebasestorage.app",
+    messagingSenderId: "12354459180",
+    appId: "1:12354459180:web:5367e21af312b1c8426389",
+    measurementId: "G-YN2R2EYFBF"
+  };
+
+  // 3. INICIALIZACIÓN
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const db = getFirestore(app); // Ahora sí está definido
+  const auth = getAuth(app);    // Ahora sí está definido
+
+  // 4. LÓGICA DE SEGURIDAD
+  // Si no hay usuario logueado, te sacará al index.html
+  onAuthStateChanged(auth, (user) => { 
+      if (!user) {
+          console.warn("No hay usuario autenticado. Redirigiendo...");
+          // Descomenta la siguiente línea cuando tengas el login listo:
+          // window.location.href = "index.html"; 
+      }
+  });
+
+  let idEditando = null;
+  let listaInventario = [];
+
+  // --- GUARDAR / EDITAR ---
+  document.getElementById('btn-guardar').addEventListener('click', async () => {
+      const nombre = document.getElementById('prod-nombre').value;
+      const tipo = document.getElementById('prod-tipo').value;
+      const cant = Number(document.getElementById('prod-cant').value);
+      const precio = Number(document.getElementById('prod-precio').value);
+
+      if (!nombre || cant < 0) { alert("Datos incorrectos"); return; }
+
+      // Regla de negocio: Cálculo estimado
+      let pesoUnitario = 0;
+      if (tipo.includes('25kg')) pesoUnitario = 25;
+      else if (tipo.includes('28kg')) pesoUnitario = 28;
+      else if (tipo.includes('50kg')) pesoUnitario = 50;
+      
+      const kilosTotales = cant * pesoUnitario;
+
+      const datos = {
+          producto: nombre,
+          tipo: tipo,
+          cantidad: cant,
+          kilos: kilosTotales,
+          precio: precio,
+          busqueda: nombre.toLowerCase(),
+          fecha: new Date() // Recomendado agregar timestamp
+      };
+
+      try {
+          if (idEditando) {
+              await updateDoc(doc(db, "inventario_bodega", idEditando), datos);
+              alert("Producto actualizado");
+          } else {
+              await addDoc(collection(db, "inventario_bodega"), datos);
+              alert("Entrada registrada");
+          }
+          cancelarEdicion();
+      } catch (e) { 
+          console.error("Error Firebase:", e); 
+          alert("Error al guardar: " + e.message); 
+      }
+  });
+
+  // --- RENDERIZADO ---
+  const renderizar = (lista) => {
+      const tbody = document.getElementById('tabla-body');
+      tbody.innerHTML = '';
+      
+      let totalBultos = 0;
+      let totalKilos = 0;
+      let alertas = 0;
+
+      if (lista.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">Bodega vacía.</td></tr>';
+          // Resetear contadores visuales si está vacío
+          document.getElementById('stat-bultos').innerText = 0;
+          document.getElementById('stat-kilos').innerText = "0 kg";
+          document.getElementById('stat-alertas').innerText = 0;
+          return;
+      }
+
+      lista.forEach(item => {
+          const data = item.data;
+          totalBultos += data.cantidad;
+          totalKilos += data.kilos || 0;
+          if(data.cantidad < 10) alertas++;
+
+          const claseStock = data.cantidad < 10 ? 'low-stock' : 'ok-stock';
+
+          const fila = `
+              <tr>
+                  <td data-label="Producto"><strong>${data.producto}</strong></td>
+                  <td data-label="Tipo">${data.tipo}</td>
+                  <td data-label="Existencia">
+                      <span class="stock-badge ${claseStock}">${data.cantidad} bultos</span>
+                  </td>
+                  <td data-label="Kilos Aprox">${data.kilos} kg</td>
+                  <td data-label="Precio Ref">$${data.precio}</td>
+                  <td data-label="Acciones">
+                      <button class="action-btn btn-edit" onclick="editar('${item.id}')">✎</button>
+                      <button class="action-btn btn-delete" onclick="borrar('${item.id}')">🗑️</button>
+                  </td>
+              </tr>
+          `;
+          tbody.innerHTML += fila;
+      });
+
+      document.getElementById('stat-bultos').innerText = totalBultos;
+      document.getElementById('stat-kilos').innerText = totalKilos.toLocaleString() + " kg";
+      document.getElementById('stat-alertas').innerText = alertas;
+  };
+
+  // --- LISTENER REALTIME (Lectura) ---
+  // Importante: Asegúrate que la colección "inventario_bodega" exista o se creará sola al guardar
+  onSnapshot(collection(db, "inventario_bodega"), (snapshot) => {
+      listaInventario = [];
+      snapshot.forEach(doc => listaInventario.push({ id: doc.id, data: doc.data() }));
+      renderizar(listaInventario);
+  }, (error) => {
+      console.error("Error leyendo inventario:", error);
+  });
+
+  // Buscador
+  document.getElementById('buscador').addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase();
+      const filtrados = listaInventario.filter(i => i.data.busqueda.includes(term));
+      renderizar(filtrados);
+  });
+
+  // --- FUNCIONES GLOBALES (Window) ---
+  window.borrar = async (id) => {
+      if(confirm("¿Eliminar este lote del inventario?")) {
+          try {
+              await deleteDoc(doc(db, "inventario_bodega", id));
+          } catch (e) {
+              console.error(e);
+              alert("No tienes permisos para borrar o hubo un error.");
+          }
+      }
+  };
+
+  window.editar = async (id) => {
+      const item = listaInventario.find(i => i.id === id).data;
+      document.getElementById('prod-nombre').value = item.producto;
+      document.getElementById('prod-tipo').value = item.tipo;
+      document.getElementById('prod-cant').value = item.cantidad;
+      document.getElementById('prod-precio').value = item.precio;
+
+      idEditando = id;
+      document.getElementById('btn-guardar').textContent = "Actualizar Lote";
+      document.getElementById('btn-guardar').style.backgroundColor = "#2196f3";
+      document.getElementById('btn-cancelar').style.display = "inline-block";
+      window.scrollTo(0,0);
+  };
+
+  window.cancelarEdicion = () => {
+      idEditando = null;
+      document.querySelector('.inventory-form').querySelectorAll('input').forEach(i => i.value = '');
+      document.getElementById('btn-guardar').textContent = "Guardar Entrada";
+      document.getElementById('btn-guardar').style.backgroundColor = "var(--primary)"; // Asegúrate que var(--primary) esté definido en CSS o usa un color hex
+      document.getElementById('btn-cancelar').style.display = "none";
+  };
+</script>
+</body>
+</html>
