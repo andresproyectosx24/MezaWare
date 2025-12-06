@@ -1,0 +1,104 @@
+/* --- CONFIGURACIÓN GLOBAL --- */
+:root {
+    --bg-dark: #121212;
+    --card-bg: #1e1e1e;
+    --primary: #4caf50; /* Verde Chayote */
+    --primary-hover: #388e3c;
+    --text-main: #e0e0e0;
+    --text-muted: #aaaaaa;
+    --border: #333333;
+    --error: #ff5252;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- ESTILOS DEL LOGIN --- */
+.login-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: radial-gradient(circle at center, #1a2e1a 0%, #121212 100%); /* Sutil fondo verde */
+}
+
+.login-card {
+    background-color: var(--card-bg);
+    padding: 40px;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+.logo-area {
+    font-size: 4rem;
+    margin-bottom: 10px;
+    animation: float 3s ease-in-out infinite;
+}
+
+h1 { margin-bottom: 5px; font-size: 1.8rem; color: white; }
+.subtitle { color: var(--text-muted); margin-bottom: 30px; font-size: 0.9rem; }
+
+.input-group { text-align: left; margin-bottom: 15px; }
+label { display: block; margin-bottom: 5px; font-size: 0.85rem; color: var(--primary); font-weight: bold; }
+
+input {
+    width: 100%;
+    padding: 12px;
+    background-color: #2d2d2d;
+    border: 1px solid var(--border);
+    color: white;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background-color: #333;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 14px;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.3s, transform 0.1s;
+}
+
+.btn-login:hover { background-color: var(--primary-hover); }
+.btn-login:active { transform: scale(0.98); }
+.btn-login:disabled { background-color: #555; cursor: not-allowed; }
+
+.error-text { color: var(--error); margin-top: 15px; font-size: 0.9rem; display: none; }
+.footer-text { margin-top: 30px; color: #555; font-size: 0.75rem; }
+
+/* Animación suave para el logo */
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+}
